@@ -1,0 +1,47 @@
+name: Run KeyCrawler 
+ 
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  run-keycrawler:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Create venv and install dependencies
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install .
+
+    - name: Setup .env file
+      run: echo "GITHUB_TOKEN=${{ secrets.MY_GH_TOKEN }}" > .env
+
+    - name: Create keys dir and cache.txt
+      run: mkdir -p keys && touch cache.txt
+
+    - name: Run keyboxer.py
+      run: |
+        source .venv/bin/activate
+        uv run python3 ./keyboxer.py
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload keys artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: keys-xml
+        path: keys/
